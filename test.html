@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+    <head>
+
+        <meta charset="utf-8">
+        <title>test</title>
+
+        <script src="dist/jspsych.js"></script>
+        <script src="dist/plugin-preload.js"></script>
+        <script src="dist/plugin-instructions.js"></script>
+
+        <script src="new_plugins/plugin-image-button-response-delayed.js"></script>
+
+        <link rel="stylesheet" href="dist/jspsych.css">
+
+        <script>
+
+            var jsPsych = initJsPsych({
+              on_finish: function() {
+                jsPsych.data.displayData();
+              }
+            });
+        
+            var preload = {
+              type: jsPsychPreload,
+              images: ["examples/img/age/of2.jpg"]
+            };
+        
+            var testing1 = {
+              type: jsPsychImageButtonResponseDelayed,
+              stimulus: 'examples/img/age/of2.jpg',
+              choices: ['lol', 'blah', 'foo', 'boo', 'lmao']
+            }
+
+            var testing2 = {
+              type: jsPsychImageButtonResponseDelayed,
+              stimulus: 'examples/img/age/of1.jpg',
+              choices: ['lol', 'blah', 'foo', 'boo', 'lmao']
+            }
+        
+            // var trial = {       
+            //   type: jsPsychInstructions,     
+            //   pages: [      
+            //     'Welcome to the experiment. Click next to begin.',      
+            //     'In this experiment, you will view a ' +       
+            //     'series of images and answer questions.<br>' +      
+            //     'Answer with the keys "y" or "n". ',     
+            //     'Here is an example:<br><br>' +        
+            //     '<img src="examples/img/age/of2.jpg" /><br><br>' +       
+            //     'Is this person YOUNG?'      
+            //   ],        
+            //   show_clickable_nav: true      
+            // };       
+        
+            jsPsych.run([preload, testing1, testing2]);
+        
+          </script>
+
+    </head>
+
+    <body></body>
+
+</html>
