@@ -2,12 +2,12 @@
 
 
 
-jsPsych.plugins['html-slider-response-interactive'] = (function() {
+jsPsych.plugins['html-slider-response-interactive-display'] = (function() {
 
   var plugin = {};
 
   plugin.info = {
-    name: 'html-slider-response-interactive',
+    name: 'html-slider-response-interactive-display',
     description: '',
     parameters: {
       stimulus: {
@@ -61,11 +61,11 @@ jsPsych.plugins['html-slider-response-interactive'] = (function() {
         array: false,
         description: 'Label of the button to advance.'
       },
-      require_movement: {     
-        type: jsPsych.plugins.parameterType.BOOL,
-        pretty_name: "Require movement",
-        default: false,
-        description: 'Require movement of slider before being able to continue.'
+      min_viewing: {
+        type: jsPsych.plugins.parameterType.INT,
+        pretty_name: 'Minimum viewing duration',
+        default: 0,  // in milliseconds
+        description: 'How long to wait before enabling continue buttom'
       },
       prompt: {
         type: jsPsych.plugins.parameterType.STRING,
@@ -106,11 +106,14 @@ jsPsych.plugins['html-slider-response-interactive'] = (function() {
 
     // slider bar
     html += '<div class="jspsych-html-slider-response-container" style="position:relative; width: 100%;">';
-    html += '<input type="range" value="'+trial.start+'" min="'+trial.min+'" max="'+trial.max+'" step="'+trial.step+'" style="width: 100%;" id="jspsych-html-slider-response-response" list="rangers">';
+    html += '<input type="range" value="'+trial.start+'" min="'+trial.min+'" max="'+trial.max+'" step="'+trial.step+'" \
+              style="width: 100%;" id="jspsych-html-slider-response-response" \
+              list="rangers" onmousedown="return false;">';  // make the slider undraggable
 
     // slider ticks
     html += '<datalist id="rangers">';
     for (var tick of trial.ticks) {
+      // console.log('tick ', tick);
       html += '<option value="'+tick+'"/>'
     }
     html += '</datalist>';
@@ -124,8 +127,18 @@ jsPsych.plugins['html-slider-response-interactive'] = (function() {
         var xLeft = trial.ticks[j] + spacing;
         var xRight = trial.ticks[j+1] - spacing;
         var width = xRight - xLeft;
-        html += '<div style="display: inline-block; position: absolute; left:'+xLeft+'%; text-align: center; width: '+width+'%; line-height: .2em;">';
-        html += '<span id="label'+j+'" style="text-align: center; font-size: 40%;">'+trial.labels[j]+'</span>';
+        html += '<div style="display: inline-block; position: absolute; left:'+xLeft+'%; text-align: center; width: '+width+'%; line-height: .2em;" disabled>';
+        //////// highlight selected bin ////////
+        if (j == trial.labels.length-1 && trial.start >= trial.ticks[j] && trial.start <= trial.ticks[j+1]) {
+          html += '<span id="label'+j+'" style="text-align: center; font-size: 40%; color: DodgerBlue">'+trial.labels[j]+'</span>';
+        }
+        else if (trial.start >= trial.ticks[j] && trial.start < trial.ticks[j+1]) {
+          html += '<span id="label'+j+'" style="text-align: center; font-size: 40%; color: DodgerBlue">'+trial.labels[j]+'</span>';
+        } else {
+          html += '<span id="label'+j+'" style="text-align: center; font-size: 40%; color: black">'+trial.labels[j]+'</span>';
+        };
+        ////////////////////////////////////////
+        // html += '<span id="label'+j+'" style="text-align: center; font-size: 50%;">'+trial.labels[j]+'</span>';
         html += '</div>'
       }      
     } else { // evenly distributed labels
@@ -153,7 +166,7 @@ jsPsych.plugins['html-slider-response-interactive'] = (function() {
     // add submit button
     html +=
     '<button id="jspsych-html-slider-response-next" class="jspsych-btn" ' +
-        (trial.require_movement ? "disabled" : "") +   // disable button for now if require_movement
+        ((trial.min_viewing>0) ? "disabled" : "") +   // disable button for now if min_viewing > 0
         ">" +
         trial.button_label +
         "</button>";
@@ -163,54 +176,55 @@ jsPsych.plugins['html-slider-response-interactive'] = (function() {
     display_element.innerHTML = html;
 
     
-    ///////////// interactive score display ///////////////
-    const outvalue = display_element.querySelector("#value");   // value to be interactively displayed
-    const input = display_element.querySelector("#jspsych-html-slider-response-response");    // input: slider params (slider current value, min and max values)
+    // ///////////// interactive score display ///////////////
+    // // const outvalue = display_element.querySelector("#value");   // value to be interactively displayed
+    // const input = display_element.querySelector("#jspsych-html-slider-response-response");    // input: slider params (slider current value, min and max values)
     
-    // set initial value to display
-    outvalue.textContent = input.value;    // input.value is the "value" field in "input" obj, different from the "value" variable here
+    // // // set initial value to display
+    // // outvalue.textContent = input.value;    // input.value is the "value" field in "input" obj, different from the "value" variable here
     
-    if (trial.ticks.length - 1 == trial.labels.length) {  // if binned
+    // if (trial.ticks.length - 1 == trial.labels.length) {  // if binned
 
-      labelObjs = display_element.querySelectorAll("span[id^='label']");
-      // highlight initial selected bin
-      for (let j=0; j < labelObjs.length; j++) {
-        if (j == labelObjs.length-1 && input.value >= trial.ticks[j] && input.value <= trial.ticks[j+1]) {  // last bin
-          labelObjs[j].style.color = "DodgerBlue";
-        }
-        else if (input.value >= trial.ticks[j] && input.value < trial.ticks[j+1]) {
-          labelObjs[j].style.color = "DodgerBlue";
-        } else {
-          labelObjs[j].style.color = "black";
-        };
-      };
-      // add slider change listener
-      input.addEventListener("input", (event) => {
-        let newValue = event.target.value;
-        // change displayed value whenever slider input changes
-        outvalue.textContent =  newValue;
-        // highlight selected bin's label
-        for (let j=0; j < labelObjs.length; j++) {
-          if (j == labelObjs.length-1 && newValue >= trial.ticks[j] && newValue <= trial.ticks[j+1]) {
-            labelObjs[j].style.color = "DodgerBlue";
-          }
-          else if (newValue >= trial.ticks[j] && newValue < trial.ticks[j+1]) {
-            labelObjs[j].style.color = "DodgerBlue";
-          } else {
-            labelObjs[j].style.color = "black";
-          };
-        };
-      });
+    //   labelObjs = display_element.querySelectorAll("span[id^='label']");
+    //   // highlight initial selected bin
+    //   for (let j=0; j < labelObjs.length; j++) {
+    //     if (j == labelObjs.length-1 && input.value >= trial.ticks[j] && input.value <= trial.ticks[j+1]) {
+    //       labelObjs[j].style.color = "DodgerBlue";
+    //     }
+    //     else if (input.value >= trial.ticks[j] && input.value < trial.ticks[j+1]) {
+    //       labelObjs[j].style.color = "DodgerBlue";
+    //     } else {
+    //       labelObjs[j].style.color = "black";
+    //     };
+    //   };
+    //   // // add slider change listener
+    //   // input.addEventListener("input", (event) => {
+    //   //   let newValue = event.target.value;
+    //   //   // // change displayed value whenever slider input changes
+    //   //   // outvalue.textContent =  newValue;
+    //   //   // highlight selected bin's label
+    //   //   for (let j=0; j < labelObjs.length; j++) {
+    //   //     if (j == labelObjs.length-1 && newValue >= trial.ticks[j] && newValue <= trial.ticks[j+1]) {
+    //   //       labelObjs[j].style.color = "DodgerBlue";
+    //   //     }
+    //   //     else if (newValue >= trial.ticks[j] && newValue < trial.ticks[j+1]) {
+    //   //       labelObjs[j].style.color = "DodgerBlue";
+    //   //     } else {
+    //   //       labelObjs[j].style.color = "black";
+    //   //     };
+    //   //   };
+    //   // });
 
-    } else {
+    // } 
+    // // else {
       
-      input.addEventListener("input", (event) => {
-        // change displayed value whenever slider input changes
-        outvalue.textContent = event.target.value; 
-      });
+    // //   input.addEventListener("input", (event) => {
+    // //     // change displayed value whenever slider input changes
+    // //     outvalue.textContent = event.target.value; 
+    // //   });
 
-    };
-    ///////////////////////////////////////////////////////
+    // // };
+    // ///////////////////////////////////////////////////////
 
 
     var response = {
@@ -219,22 +233,15 @@ jsPsych.plugins['html-slider-response-interactive'] = (function() {
     };
 
 
-    ///////////// enable button if movement detected on slider ///////////
-    if (trial.require_movement) {
-      const enable_button = () => {
-          display_element.querySelector("#jspsych-html-slider-response-next").disabled = false;
-      };
-      display_element
-          .querySelector("#jspsych-html-slider-response-response")
-          .addEventListener("mousedown", enable_button);
-      display_element
-          .querySelector("#jspsych-html-slider-response-response")
-          .addEventListener("touchstart", enable_button);
-      display_element
-          .querySelector("#jspsych-html-slider-response-response")
-          .addEventListener("change", enable_button);
+    ///////////// enable button if min_viewing duration reached ///////////
+    if (trial.min_viewing > 0) {
+      jsPsych.pluginAPI.setTimeout(function() {
+        // enable_button
+        display_element.querySelector("#jspsych-html-slider-response-next").disabled = false;
+      }, trial.min_viewing);
     }
     /////////////////////////////////////////////////////////////////////
+
 
 
     // add button click listener
